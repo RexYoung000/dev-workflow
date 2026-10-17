@@ -2,10 +2,10 @@
 id: T-005
 title: AGENTS.md 定稿同步进 workflow init 内嵌模板
 module: scripts
-status: todo
+status: done
 deps: T-001
 issue: 5
-assignee: 
+assignee: agent-D
 ---
 
 ## 描述
@@ -14,6 +14,6 @@ T-001 定稿 AGENTS.md 后，将定稿内容同步为 `scripts/workflow.py` 的�
 
 ## 验收标准
 
-- [ ] workflow.py 内嵌 AGENTS 模板与仓库根 AGENTS.md 定稿内容一致
-- [ ] 在空目录执行 init 产出完整骨架且 AGENTS.md 为定稿版
-- [ ] 重复执行 init 不覆盖已有文件，status 命令正常运行
+- [x] workflow.py 内嵌 AGENTS 模板与仓库根 AGENTS.md 定稿内容一致
+- [x] 在空目录执行 init 产出完整骨架且 AGENTS.md 为定稿版
+- [x] 重复执行 init 不覆盖已有文件，status 命令正常运行
