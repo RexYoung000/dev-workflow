@@ -2,10 +2,10 @@
 id: T-004
 title: 编写 Skill 完整内容（SKILL.md 与 references 三份）
 module: skill
-status: todo
+status: done
 deps: T-002
 issue: 4
-assignee: 
+assignee: agent-C
 ---
 
 ## 描述
@@ -21,6 +21,6 @@ Skill 定位为流程触发器与操作手册，只引用事实源（AGENTS.md�
 
 ## 验收标准
 
-- [ ] SKILL.md front-matter 含 name 与 description，触发词齐全
-- [ ] references/ 下 phases.md、questioning.md、commands.md 三份齐全
-- [ ] 文中引用的阶段门槛、命令行为与技术规范一致，无复制漂移
+- [x] SKILL.md front-matter 含 name 与 description，触发词齐全
+- [x] references/ 下 phases.md、questioning.md、commands.md 三份齐全
+- [x] 文中引用的阶段门槛、命令行为与技术规范一致，无复制漂移
