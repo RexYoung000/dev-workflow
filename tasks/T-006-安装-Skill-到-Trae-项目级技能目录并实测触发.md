@@ -2,7 +2,7 @@
 id: T-006
 title: 安装 Skill 到 Trae 项目级技能目录并实测触发
 module: skill
-status: review
+status: done
 deps: T-004
 issue: 6
 assignee: main-agent
@@ -15,5 +15,5 @@ assignee: main-agent
 ## 验收标准
 
 - [x] 安装目录结构完整（SKILL.md + references/ 三份）
-- [ ] Trae 新会话中点名触发成功
+- [x] Trae 新会话中点名触发成功（用户实测确认，2026-10-18）
 - [x] 实测确认的安装路径与步骤回写至 references/commands.md
