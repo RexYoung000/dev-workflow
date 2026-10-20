@@ -2,7 +2,7 @@
 id: T-007
 title: 完成 Trae 项目级分发与流程可靠性修复
 module: workflow
-status: review
+status: done
 deps: 
 issue: 7
 assignee: main-agent
@@ -20,4 +20,4 @@ assignee: main-agent
 - [x] 不复制源项目状态，跨仓库配置冲突在远端写入前阻止
 - [x] 异常 Task / done 检查点 / 依赖结构不能绕过门槛，并行预览尊重依赖
 - [x] 隔离测试通过，独立安装验证完成；真实 Trae 与跨平台未验证项如实记录
-- [ ] 文档回写与普通提交推送完成，用户最终体验验收保持待确认
+- [x] 文档回写与普通提交推送完成，用户最终体验验收保持待确认
