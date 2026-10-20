@@ -7,7 +7,7 @@
 - 稳定 Skill ID 与 `.trae/skills/dev-workflow/` 安装路径保留，新旧名称均可点名，不要求已有消费项目迁移；旧 AGENTS、规则和 CLI 路径仍有效。
 - 34 项回归测试与 Skill 结构检查通过。独立项目 `trae-rename-verification` 的 Trae CN 3.4.4 新会话只点名 trae-Rex-workflow，实际加载 Skill dev-workflow，并运行包内 --version（1.1.1）与 status（阶段 1、零 Task）。
 - 本轮加载量：发现元数据 377 B，SKILL.md 入口 2554 B，完整安装包 11 文件 / 43939 B。按需资源总量包含模板与 CLI，没有把移动当作删除。
-- 新仓库地址公开 clone 与安装复核待推送后完成；用户完整体验验收仍待确认。
+- 新仓库地址匿名公开 clone（630efee）与全新项目安装复核通过，包内 CLI 为 1.1.1、阶段 1、零 Task；改名实现已推送；用户完整体验验收仍待确认。
 
 ## Windows 与国际版兼容性评估（2026-10-20）
 
