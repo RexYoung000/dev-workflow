@@ -1,6 +1,6 @@
 # 项目操作入口
 
-本项目使用 Trae 项目级 dev-workflow 管理开发流程。
+本项目使用 Trae 项目级 trae-Rex-workflow（Skill ID：dev-workflow） 管理开发流程。
 
 - 开始或继续流程前，读取 `.trae/skills/dev-workflow/SKILL.md` 和其中需要的参考手册。
 - 产品与技术事实以本项目 `docs/prd.md`、`docs/tech-spec.md` 及实际实现为准。

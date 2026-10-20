@@ -1,5 +1,7 @@
 # CLI、安装和恢复
 
+项目名为 trae-Rex-workflow，Skill ID 与以下旧安装路径保持兼容。新会话可点名新名称或 dev-workflow。
+
 在消费项目根目录运行，统一入口（下文简写 workflow）：
 
 ```bash

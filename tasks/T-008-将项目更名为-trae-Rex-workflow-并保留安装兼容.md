@@ -2,7 +2,7 @@
 id: T-008
 title: 将项目更名为 trae-Rex-workflow 并保留安装兼容
 module: workflow
-status: in-progress
+status: review
 deps: 
 issue: 8
 assignee: 
@@ -14,8 +14,8 @@ assignee:
 
 ## 验收标准
 
-- [ ] 先更新命名契约、README 与维护文档
-- [ ] 同步仓库名、origin 和本仓库 repo 缓存，保留历史和 Issue
-- [ ] 新名称可点名触发，旧 Skill ID 与路径保持兼容
+- [x] 先更新命名契约、README 与维护文档
+- [x] 同步仓库名、origin 和本仓库 repo 缓存，保留历史和 Issue
+- [x] 新名称可点名触发，旧 Skill ID 与路径保持兼容
 - [ ] 必要回归、结构检查和新地址安装验证通过
 - [ ] 普通提交推送完成，最终体验验收仍待用户确认

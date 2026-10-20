@@ -6,7 +6,7 @@
 
 ## 安装
 
-需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。主力支持环境为 Trae CN；其他版本与平台的实际验证范围见 [验收记录](docs/acceptance.md)。Windows 如没有 python3，可将命令中的 python3 换为 `py -3`。
+需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。主力支持环境为 Trae CN；其他版本与平台的实际验证范围见 [验收记录](docs/acceptance.md)。Windows 已发现编码与 BOM 文件读取兼容缺口，目前尚未修复；国际版仅核对了官方项目目录约定，未做客户端验收。详情见验收记录，不将本机测试结果当作跨平台支持结论。
 
 ```bash
 git clone https://github.com/RexYoung000/trae-Rex-workflow.git
@@ -44,6 +44,14 @@ python3 .trae/skills/dev-workflow/scripts/workflow.py task sync
 已有 origin 不需要重复添加。同步会创建/关闭真实 Issue，应在确认 Task 内容后执行。工作流目前要求 Task 有 Issue 后进入执行阶段；不使用 GitHub 时可进行本地规划，但不能走完整六阶段。
 
 ## 更新与回退
+
+旧源码 checkout 可先更新仓库地址（**仅在本工作流的源码仓库执行，不要把业务项目的 origin 改成此地址**）：
+
+```bash
+git remote set-url origin https://github.com/RexYoung000/trae-Rex-workflow.git
+git pull --ff-only
+```
+
 
 在源码 checkout 拉取新版后重新运行同一 install 命令。只替换 `.trae/skills/dev-workflow/`，不重置业务文档、Task 或阶段。内容相同则跳过；有变更时打印旧包在 `.trae/.dev-workflow-backups/` 下的备份位置。需要回退时，将该备份中的 dev-workflow 目录恢复到 `.trae/skills/dev-workflow/`，然后新开 Trae 会话。
 

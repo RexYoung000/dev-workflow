@@ -1,9 +1,11 @@
 ---
 name: dev-workflow
-description: 在 Trae 中开始或继续已安装项目的六阶段开发流程，编写项目 PRD、拆分 Task 或同步 GitHub Issue。用户点名 dev-workflow 或明确需要项目流程管理时使用；单个问答和不涉及项目流程的小修复不强制进入完整六阶段。
+description: trae-Rex-workflow（兼容名 dev-workflow）：在 Trae 中开始或继续已安装项目的六阶段开发流程，编写项目 PRD、拆分 Task 或同步 GitHub Issue。用户点名 trae-Rex-workflow、dev-workflow 或明确需要项目流程管理时使用；单个问答和不涉及项目流程的小修复不强制进入完整六阶段。
 ---
 
-# dev-workflow
+# trae-Rex-workflow
+
+项目名已更改；稳定 Skill ID 与安装目录仍为 `dev-workflow`，识别新旧两种点名方式。
 
 仅支持 Trae 项目级使用。项目自己的 AGENTS.md、业务文档、Task 与实际实现是事实源；不要把分发仓库的需求、历史任务或状态当作当前项目资料。
 

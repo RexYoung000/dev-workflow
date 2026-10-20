@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trae 项目级 dev-workflow CLI。Python >=3.9，仅标准库。"""
+"""Trae 项目级 trae-Rex-workflow CLI。Python >=3.9，仅标准库。"""
 
 import argparse
 from collections import deque
@@ -14,7 +14,7 @@ import sys
 import tempfile
 from urllib.parse import urlsplit
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 PACKAGE = Path(__file__).resolve().parents[1]
 STATUSES = ("todo", "in-progress", "review", "done", "blocked")
 FIELD_ORDER = ("id", "title", "module", "status", "deps", "issue", "assignee")
@@ -250,7 +250,7 @@ def existing_payload(destination):
 
 def install_project(root, initialize=False):
     if source_root() == root:
-        print("[跳过] 目标是 dev-workflow 源码仓库；请安装到自己的业务项目。")
+        print("[跳过] 目标是 trae-Rex-workflow 源码仓库；请安装到自己的业务项目。")
         return
     files = payload()
     check_target(root)
@@ -258,7 +258,7 @@ def install_project(root, initialize=False):
     old = existing_payload(destination)
     root.mkdir(parents=True, exist_ok=True)
     if old == files:
-        print(f"[跳过] dev-workflow {VERSION} 安装内容已一致")
+        print(f"[跳过] trae-Rex-workflow {VERSION} 安装内容已一致")
     else:
         (root / ".trae/skills").mkdir(parents=True, exist_ok=True)
         temporary = Path(tempfile.mkdtemp(prefix=".dev-workflow-stage-", dir=root / ".trae"))
@@ -282,7 +282,7 @@ def install_project(root, initialize=False):
                 raise
             if backup is not None:
                 print(f"[备份] {backup}")
-            print(f"[安装] dev-workflow {VERSION} → {destination}")
+            print(f"[安装] trae-Rex-workflow {VERSION} → {destination}")
         finally:
             shutil.rmtree(temporary)
     seed(root, ".trae/rules/dev-workflow.md", (PACKAGE / "assets/trae-rule.md").read_text(encoding="utf-8"))
@@ -291,7 +291,7 @@ def install_project(root, initialize=False):
     print("安装文件：")
     for relative in sorted(files):
         print(f"  .trae/skills/dev-workflow/{relative}")
-    print("请在 Trae 打开目标项目，在技能与命令中确认 dev-workflow 已启用，新开会话点名触发。")
+    print("请在 Trae 打开目标项目，在技能与命令中确认 Skill dev-workflow 已启用，新开会话点名 trae-Rex-workflow 触发。")
 
 
 def cmd_init(_args):
@@ -616,7 +616,7 @@ def cmd_phase(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="workflow", description="Trae 项目级 dev-workflow CLI")
+    parser = argparse.ArgumentParser(prog="workflow", description="Trae 项目级 trae-Rex-workflow CLI")
     parser.add_argument("--version", action="version", version=VERSION)
     commands = parser.add_subparsers(dest="cmd", required=True)
     install = commands.add_parser("install", help="安装完整 Trae 项目 Skill")

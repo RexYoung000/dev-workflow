@@ -1,4 +1,30 @@
-# dev-workflow 验证与验收记录
+# trae-Rex-workflow 验证与验收记录
+
+## v1.1.1 项目更名（2026-10-20）
+
+- 用户确认项目名及仓库名为 `trae-Rex-workflow`，修正输入时 workflow 的拼写。先文档提交 `4840b12`，再实施。
+- GitHub 仓库 ID 仍为 1423105107，历史和 Issue 保留；本地 origin 与本仓库 repo 缓存同步为 `RexYoung000/trae-Rex-workflow`。
+- 稳定 Skill ID 与 `.trae/skills/dev-workflow/` 安装路径保留，新旧名称均可点名，不要求已有消费项目迁移；旧 AGENTS、规则和 CLI 路径仍有效。
+- 34 项回归测试与 Skill 结构检查通过。独立项目 `trae-rename-verification` 的 Trae CN 3.4.4 新会话只点名 trae-Rex-workflow，实际加载 Skill dev-workflow，并运行包内 --version（1.1.1）与 status（阶段 1、零 Task）。
+- 本轮加载量：发现元数据 377 B，SKILL.md 入口 2554 B，完整安装包 11 文件 / 43939 B。按需资源总量包含模板与 CLI，没有把移动当作删除。
+- 新仓库地址公开 clone 与安装复核待推送后完成；用户完整体验验收仍待确认。
+
+## Windows 与国际版兼容性评估（2026-10-20）
+
+本节是代码检查、官方文档核对与本机模拟结果，**不是 Windows 或国际版客户端实测**；本轮更名不包含这些兼容缺口的修复。
+
+| 观察 | 证据与处理建议 |
+|---|---|
+| 非 UTF-8 标准输出 | 以 cp1252 模拟 Trae 捕获输出，CLI --help 返回 UnicodeEncodeError。明确本进程输出编码，不依赖系统默认；Windows 命令可临时用 -X utf8 缓解，不改系统全局设置 |
+| 子进程解码 | 模拟 cp936 默认解码后，包含中文的 UTF-8 JSON 触发 UnicodeDecodeError。对子进程按工具明确指定解码方式，结构化 JSON 不用错误替换掩盖损坏 |
+| BOM 与换行 | CRLF Task 正常；UTF-8 BOM Task 的字段未识别，BOM state.json 被拒绝。读取接受 utf-8-sig，继续写无 BOM UTF-8 |
+| 长 Issue 正文 | 当前 --body 直接放进命令行，模拟参数为 35067 UTF-16 单元，超过 Windows CreateProcessW 的 32767 上限。改为 gh --body-file 或标准输入 |
+| Windows 测试入口 | 当前假 gh 使用 Unix shebang/chmod，多处测试文本读写和子进程捕获依赖默认编码；不能直接将 34 项本机通过当作 Windows 通过。先改跨平台测试替身、显式 UTF-8，再加真实 Windows 测试执行 |
+| 文件占用与长路径 | 本轮未复现 Windows 文件锁与路径上限；属于待真机验证风险。检查中文/空格/长路径、文件占用下更新失败与备份恢复，必要时补有限重试和明确恢复提示 |
+
+国际版官方文档确认项目技能 `.trae/skills/`、项目规则 `.trae/rules/` 及 AGENTS 导入约定与当前设计一致。全局目录使用 `~/.trae/`，CN 使用 `~/.trae-cn/`，本包不写全局目录，因此无需按地区维护两套安装包。当前不绑定 CN 模型或子智能体配置，能力不可用时串行；真实国际版新会话加载与运行仍待验证。
+
+参考：[国际版 Skills](https://docs.trae.ai/ide/skills)、[国际版 Rules](https://docs.trae.ai/ide/rules)、[Python Windows UTF-8](https://docs.python.org/3.13/using/windows.html#utf-8-mode)、[Windows 命令行上限](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)、[gh body-file](https://cli.github.com/manual/gh_issue_create)。
 
 ## v1.1 Trae 项目级分发（2026-10-20）
 

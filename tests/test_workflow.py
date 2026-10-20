@@ -253,7 +253,7 @@ class WorkflowTests(unittest.TestCase):
     def test_cached_repo_conflict_prevents_install_and_sync_writes(self):
         self.install()
         self.own_origin()
-        self.state(repo="RexYoung000/dev-workflow")
+        self.state(repo="RexYoung000/trae-Rex-workflow")
         self.task()
         before = (self.project / ".workflow/state.json").read_bytes()
         self.command("install", "--target", self.project, "--init", ok=False)
