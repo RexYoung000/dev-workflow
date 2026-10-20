@@ -9,7 +9,7 @@
 ```bash
 git clone https://github.com/RexYoung000/dev-workflow.git
 cd dev-workflow
-python3 scripts/workflow.py install --target /你的/业务项目根目录 --init
+python3 scripts/workflow.py install --target "/你的/业务项目根目录" --init
 ```
 
 目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，进入“设置 → 技能与命令”确认项目 Skill `dev-workflow` 已启用；新开会话发送：

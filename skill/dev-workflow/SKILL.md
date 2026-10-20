@@ -1,42 +1,23 @@
 ---
 name: dev-workflow
-description: "dev-workflow 开发流程的触发器与操作手册：当用户点名 dev-workflow，或请求开始新项目、继续项目、写 PRD、拆 Task、同步 Issue 等与项目流程相关的操作时使用。本 Skill 只负责触发流程并指引 agent 按手册推进，不复制事实内容；事实源始终是项目仓库内的 AGENTS.md、docs/ 与 tasks/。"
+description: 在 Trae 中开始或继续已安装项目的六阶段开发流程，编写项目 PRD、拆分 Task 或同步 GitHub Issue。用户点名 dev-workflow 或明确需要项目流程管理时使用；单个问答和不涉及项目流程的小修复不强制进入完整六阶段。
 ---
 
-# dev-workflow Skill
+# dev-workflow
 
-## 定位
+仅支持 Trae 项目级使用。项目自己的 AGENTS.md、业务文档、Task 与实际实现是事实源；不要把分发仓库的需求、历史任务或状态当作当前项目资料。
 
-本 Skill 是 dev-workflow 开发流程的**触发器与操作手册**：识别流程意图、指引 agent 按约定流程推进项目，不复制事实内容。
+## 进入项目
 
-## 触发方式
+1. 读取目标项目已有 AGENTS.md（若有）及与任务有关的业务资料，遵守用户当前授权；工作流本身不扩大修改、同步或发布权限。
+2. 在目标项目根目录使用 `python3 .trae/skills/dev-workflow/scripts/workflow.py`；这是自带 CLI，不依赖源码 checkout，也不要求目标已有 scripts/workflow.py。Windows 可使用 `py -3`。
+3. 尚无 `.workflow/state.json` 时运行上述入口的 `init`；随后运行 `status`，确认当前阶段、异常 Task、仓库配置与执行候选。中途接手再读取本项目 docs/prd.md、docs/tech-spec.md 和当前 Task。
+4. 按当前任务读取 [阶段与执行约定](references/phases.md)。需求决策按 [提问规范](references/questioning.md)；初始化、同步、升级或命令出错时按 [CLI 与安装说明](references/commands.md)。无需一次加载全部参考文件。
 
-- **用户点名**：用户在对话中直接提及 dev-workflow，例如「用 dev-workflow 开始新项目」「用 dev-workflow 继续当前项目」。
-- **语义匹配**：用户请求与 description 中的触发场景匹配时自动调用，例如要求开始新项目、继续项目、写 PRD、拆 Task、同步 Issue。
+## 推进边界
 
-## 使用前置
-
-- 进入被管理的项目后，**必须先读取项目根目录的 `AGENTS.md`**，再按其指引获取流程与规则；本 Skill 不重复其内容。
-
-## 标准使用流程
-
-1. **触发**：按「触发方式」识别流程意图，进入本流程。
-2. **读目标项目 `AGENTS.md`**：获取流程规则、文件地图与关键规则（若项目尚未初始化，先运行 `python3 scripts/workflow.py init` 建立骨架）。
-3. **确认阶段**：运行 `python3 scripts/workflow.py status`（用法见 `references/commands.md`），确认当前阶段、Task 计数与并行分组；中途接手再按 AGENTS.md「上下文恢复最短路径」补读 PRD 与技术规范。
-4. **按当前阶段行动**：
-   - 阶段 1 需求/PRD：按 `references/questioning.md` 逐题 + 选项卡提问，产出并请用户确认 `docs/prd.md`。
-   - 阶段 2 技术规范：确定技术栈、撰写 `docs/tech-spec.md`、建立约定文件体系。
-   - 阶段 3 Demo 验证：实现最小闭环 Demo，逐项给出技术验证点结论。
-   - 阶段 4 Task/Issue 拆解：`task new` 拆 Task，`task sync` 建 Issue 并回填编号。
-   - 阶段 5 Agent 执行：按 Task 分派执行（并发规则见 AGENTS.md），逐个 commit + push 并同步状态。
-   - 阶段 6 测试与验收：agent 测试复查 → 用户验收；缺陷回阶段 5，新需求回流阶段 1。
-   - 六阶段定义与门槛细则见 `references/phases.md`。
-5. **门槛由 CLI 校验**：推进阶段一律运行 `python3 scripts/workflow.py phase next`，由 CLI 自动校验，失败按提示补齐缺口后重试；不得手工编辑 `.workflow/state.json` 绕过校验。
-
-## 参考文件索引
-
-| 文件 | 用途 |
-|---|---|
-| `references/phases.md` | 六阶段流程定义与阶段门槛检查清单 |
-| `references/questioning.md` | 需求阶段的逐题 + 选项卡提问规范 |
-| `references/commands.md` | CLI 命令用法、错误处理，以及本 Skill 的安装与更新方法 |
+- 先对齐需求与方案，再实施和验证；用户已明确授权的范围不重复确认。工作流不要求已有项目把所有阶段重新做一遍。
+- 推进阶段用 CLI 的 `phase next` 或 `phase set N`，不手工改 state.json 绕过门槛。CLI 检查结构与任务条件；用户确认、Demo 实际运行、推送和产品验收另行核实。
+- Issue 同步必须使用当前项目自己的 origin、gh 登录和权限；配置不一致时停止，不自动重置 Issue 映射，不使用分发仓库的账号或地址。
+- 并行预览只是建议。依赖已完成且无共享文件冲突才分派；仅在当前 Trae 内置 Agent 支持相关子智能体时采用并行，否则串行。提交由主 Agent 串行处理。
+- done 需要实际验收检查点全部完成；Agent 自测和用户体验验收分别记录。不将“Skill 被识别”或“命令通过”当作产品验收。

@@ -14,6 +14,8 @@ Trae 项目 Skill 路径以官方文档为准：`.trae/skills/<name>/SKILL.md`�
 
 参考：[技能](https://docs.trae.cn/ide_skills)、[规则](https://docs.trae.cn/ide_rules)、[子智能体](https://docs.trae.cn/ide_subagents)。真实客户端是否识别及触发须单独验证；文件布局正确不等同于 UI 验收。
 
+本版只支持 github.com 仓库。gh 子进程固定使用 github.com，登录检查也限定该主机，不让本机用于企业 GitHub 的 GH_HOST 将同步写入转向其他服务。
+
 ## 2. 单一维护来源与目录
 
 ```text
