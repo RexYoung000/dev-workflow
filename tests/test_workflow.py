@@ -1,8 +1,10 @@
 """隔离验证公开安装契约及远端写入边界；绝不调用真实 gh。"""
 
 import ast
+from contextlib import redirect_stdout
 import ctypes
 import importlib.util
+import io
 import json
 import locale
 import os
@@ -166,7 +168,7 @@ class WorkflowTests(unittest.TestCase):
             if ".dev-workflow-stage-" in str(path):
                 raise OSError("simulated swap failure")
             return rename(path, target)
-        with patch.object(Path, "rename", failing_rename):
+        with patch.object(Path, "rename", failing_rename), redirect_stdout(io.StringIO()):
             with self.assertRaisesRegex(module.WorkflowError, "旧包已恢复"):
                 module.install_project(self.project)
         self.assertEqual((package / "SKILL.md").read_text(encoding="utf-8"), "old version to restore")
@@ -540,7 +542,7 @@ class WorkflowTests(unittest.TestCase):
             if ".dev-workflow-stage-" in str(path) or ".dev-workflow-backups" in str(path):
                 raise PermissionError("file busy")
             return rename(path, target)
-        with patch.object(Path, "rename", locked), patch.object(module.time, "sleep"):
+        with patch.object(Path, "rename", locked), patch.object(module.time, "sleep"), redirect_stdout(io.StringIO()):
             with self.assertRaisesRegex(module.WorkflowError, "旧包完整保留在") as result:
                 module.install_project(self.project)
         backup = next((self.project / ".trae/.dev-workflow-backups").glob("*/dev-workflow"))
