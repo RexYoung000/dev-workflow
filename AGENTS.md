@@ -1,6 +1,6 @@
-# AGENTS.md — dev-workflow 仓库维护入口
+# AGENTS.md — trae-Rex-workflow 仓库维护入口
 
-本仓库维护一个 **仅面向 Trae 的项目级工作流包**，由 Skill、Python CLI、参考手册和模板组成。这里的 PRD、技术规范、Task 和状态属于 dev-workflow 自身，禁止作为业务项目的初始数据分发。
+本仓库项目名为 **trae-Rex-workflow**，稳定 Skill ID 与安装路径保留 `dev-workflow` 以兼容既有项目。维护一个 **仅面向 Trae 的项目级工作流包**，由 Skill、Python CLI、参考手册和模板组成。这里的 PRD、技术规范、Task 和状态属于 dev-workflow 自身，禁止作为业务项目的初始数据分发。
 
 ## 事实源与文件地图
 

@@ -1,22 +1,24 @@
-# dev-workflow
+# trae-Rex-workflow
 
 面向 Trae 的项目级开发工作流：从需求、技术方案、Demo、Task/Issue，到实施与测试验收。每位开发者安装到自己的项目，使用自己的 GitHub 仓库。
+
+项目名为 **trae-Rex-workflow**；为兼容既有安装，Skill ID 仍为 `dev-workflow`，项目安装目录与 CLI 路径不变。点名新名称或旧名称均可触发，升级仍安装到原目录，不会并存两份 Skill。
 
 ## 安装
 
 需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。主力支持环境为 Trae CN；其他版本与平台的实际验证范围见 [验收记录](docs/acceptance.md)。Windows 如没有 python3，可将命令中的 python3 换为 `py -3`。
 
 ```bash
-git clone https://github.com/RexYoung000/dev-workflow.git
-cd dev-workflow
+git clone https://github.com/RexYoung000/trae-Rex-workflow.git
+cd trae-Rex-workflow
 python3 scripts/workflow.py install --target "/你的/业务项目根目录" --init
 ```
 
 目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，进入“设置 → 技能与命令”确认项目 Skill `dev-workflow` 已启用；新开会话发送：
 
-> 用 dev-workflow 开始新项目。先读取项目现有资料，逐题确认关键需求。
+> 用 trae-Rex-workflow 开始新项目。先读取项目现有资料，逐题确认关键需求。
 
-继续已有项目时发送“用 dev-workflow 继续当前项目”。规则入口在 `.trae/rules/dev-workflow.md`；不修改全局设置或要求安装 MCP。若需要自动导入已有 AGENTS，可在 Trae 规则设置中自行开启；Skill 本身也会明确读取它。
+继续已有项目时发送“用 trae-Rex-workflow 继续当前项目”。规则入口在 `.trae/rules/dev-workflow.md`；不修改全局设置或要求安装 MCP。若需要自动导入已有 AGENTS，可在 Trae 规则设置中自行开启；Skill 本身也会明确读取它。
 
 安装包自带脚本、模板和参考文件；安装完成后可移走源码 checkout。首次初始化不会复制本仓库的历史任务、状态或 PRD。已有 AGENTS、业务文档和自定义模板保留。
 
@@ -58,4 +60,4 @@ python3 .trae/skills/dev-workflow/scripts/workflow.py task sync
 
 ## 许可
 
-[MIT](LICENSE)。此许可覆盖 dev-workflow，不改变安装目标业务项目的许可。
+[MIT](LICENSE)。此许可覆盖 trae-Rex-workflow，不改变安装目标业务项目的许可。

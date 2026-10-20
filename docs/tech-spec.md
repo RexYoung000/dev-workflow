@@ -1,10 +1,12 @@
-# dev-workflow 技术规范
+# trae-Rex-workflow 技术规范
 
 | 项 | 值 |
 |---|---|
 | 版本 | v1.1，Trae 项目级分发 |
 | 日期 | 2026-10-20 |
 | 依据 | 当前 PRD 与用户本轮实施授权 |
+
+项目与仓库名称为 `trae-Rex-workflow`，兼容 Skill ID 仍为 `dev-workflow`；不迁移消费项目的 `.trae/skills/dev-workflow/`、规则路径或已有 Task。源码仓库 origin 与自身 repo 缓存同时更新，GitHub Issue 编号不变。
 
 ## 1. 来源与目标环境
 
