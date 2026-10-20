@@ -453,6 +453,13 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(module.WorkflowError, "非 UTF-8"):
             module.run([sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'\\xff')"])
 
+    def test_relative_executable_is_resolved_before_changing_working_directory(self):
+        module = load_module()
+        relative = os.path.relpath(sys.executable)
+        with patch.object(module.shutil, "which", return_value=relative):
+            result = module.run(["python-for-test", "-c", "print('resolved')"], cwd=self.project)
+        self.assertEqual(result.stdout.strip(), "resolved")
+
     def test_bom_crlf_state_tasks_and_documents_are_read_without_rewriting(self):
         self.install()
         self.documents()

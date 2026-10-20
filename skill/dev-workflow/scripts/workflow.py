@@ -44,6 +44,7 @@ def run(command, cwd=None, check=True, env=None, input_text=None):
     executable = shutil.which(command[0])
     if executable is None:
         fail(f"未找到命令 {command[0]}，请先安装")
+    executable = os.path.abspath(executable)
     try:
         result = subprocess.run([executable, *command[1:]], cwd=cwd, env=env, capture_output=True,
                                 input=None if input_text is None else input_text.encode("utf-8"), timeout=45)
