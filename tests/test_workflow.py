@@ -459,7 +459,7 @@ class WorkflowTests(unittest.TestCase):
         try:
             # Windows runner 的解释器和项目可处于不同盘符，不对它们求 relpath。
             os.chdir(Path(sys.executable).parent)
-            with patch.object(module.shutil, "which", return_value=Path(sys.executable).name):
+            with patch.object(module.shutil, "which", return_value=os.curdir + os.sep + Path(sys.executable).name):
                 result = module.run(["python-for-test", "-c", "print('resolved')"], cwd=self.project)
         finally:
             os.chdir(previous)
