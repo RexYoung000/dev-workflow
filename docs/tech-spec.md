@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| 版本 | v1.1.1，Trae 项目级分发 |
+| 版本 | v1.1.2，Trae 项目级分发 |
 | 日期 | 2026-10-20 |
 | 依据 | 当前 PRD 与用户本轮实施授权 |
 
@@ -17,6 +17,8 @@ Trae 项目 Skill 路径以官方文档为准：`.trae/skills/<name>/SKILL.md`�
 参考：[技能](https://docs.trae.cn/ide_skills)、[规则](https://docs.trae.cn/ide_rules)、[子智能体](https://docs.trae.cn/ide_subagents)。真实客户端是否识别及触发须单独验证；文件布局正确不等同于 UI 验收。
 
 本版只支持 github.com 仓库。gh 子进程固定使用 github.com，登录检查也限定该主机，不让本机用于企业 GitHub 的 GH_HOST 将同步写入转向其他服务。
+
+国际版遵循相同项目目录：[Skills](https://docs.trae.ai/ide/skills)、[Rules](https://docs.trae.ai/ide/rules)。国内版与国际版的用户全局目录差异不影响本包；不新增地区开关，不分发模型或账号配置。
 
 ## 2. 单一维护来源与目录
 
@@ -108,6 +110,19 @@ phase 必须为 1..6 整数，max_parallel 为正整数，repo 为空或 owner/n
 先判断 deps 全为 done，再将 todo/in-progress 按模块分组；每模块最多选一个，优先既有 in-progress；有同模块并行冲突时明确报告。全局最多 max_parallel，其余列为排队。未完成依赖、blocked/review 与异常 Task 不标为可执行。仅为候选建议，不自动启动子智能体或提供文件锁；Agent 核对跨模块共享文件，运行时能力不可用则串行。
 
 ## 4. 验证与验收
+
+### Windows 兼容契约（v1.1.2，实施前）
+
+- CLI 标准输出/错误在本进程明确为 UTF-8，不改全局环境；Git/gh 的正常结构化输出严格按 UTF-8 解码。失败诊断可按本机编码回退，不能用字符替换让损坏 JSON 继续同步。
+- 子进程使用参数列表、绝对可执行文件路径且不用 shell。Issue 创建使用 `gh issue create --body-file -`，正文以 UTF-8 字节送入 stdin，保留换行且不受 Windows 命令行正文长度影响。
+- Task、状态、模板与门槛文档读取支持 UTF-8 BOM、LF/CRLF；所有写入无 BOM UTF-8/LF。Task 文件名的标题片段限定 UTF-8 字节数，完整标题仍保存于 front-matter。
+- 原子文件替换与包目录移动只对 PermissionError 有限重试。更新交换失败尝试恢复旧包；恢复也失败时保留备份并明确输出旧包位置与目标路径，清理失败不能掩盖原始错误。
+- Windows 安装/初始化预检包含暂存与备份的最长托管路径，超过传统路径限制时在写入前拒绝并建议短项目路径；不修改注册表或 Git 全局配置。超长路径支持不作承诺。
+- GitHub Actions 在 Windows/macOS/Linux、Python 3.9/3.13 执行测试，仅授予 contents:read。测试替身不依赖 Unix shebang/chmod/PATH 覆盖或真实 gh，不访问真实业务仓库。
+
+依据：[Python subprocess](https://docs.python.org/3.13/library/subprocess.html)、[Windows 命令行上限](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)、[gh Issue 正文输入](https://cli.github.com/manual/gh_issue_create)。
+
+### 验证范围
 
 - Python 标准库 unittest，CLI 在 TemporaryDirectory 中运行；需要 gh 时用记录调用的假后端，不对真实仓库制造测试 Issue。
 - 端到端：source clone → install --init → 删除/移开分发源 → 新建 Task/status/phase；安装包可独立运行。

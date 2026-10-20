@@ -6,13 +6,23 @@
 
 ## 安装
 
-需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。主力支持环境为 Trae CN；其他版本与平台的实际验证范围见 [验收记录](docs/acceptance.md)。Windows 已发现编码与 BOM 文件读取兼容缺口，目前尚未修复；国际版仅核对了官方项目目录约定，未做客户端验收。详情见验收记录，不将本机测试结果当作跨平台支持结论。
+需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。国内版与国际版共用同一安装包，不绑定地区账号和模型。v1.1.2 正在修复 Windows 编码、BOM 与长正文兼容性；平台测试和客户端实际验证范围分别见 [验收记录](docs/acceptance.md)，不将 CLI 测试当作客户端验收。
 
 ```bash
 git clone https://github.com/RexYoung000/trae-Rex-workflow.git
 cd trae-Rex-workflow
 python3 scripts/workflow.py install --target "/你的/业务项目根目录" --init
 ```
+
+Windows PowerShell（建议较短的项目路径，不需要 Git Bash）：
+
+```powershell
+git clone https://github.com/RexYoung000/trae-Rex-workflow.git
+cd trae-Rex-workflow
+py -3 scripts/workflow.py install --target "C:\Projects\我的项目" --init
+```
+
+后续命令在 Windows 将 `python3` 换为 `py -3`；若未安装 Python Launcher，使用已安装的 `python`（先确认版本 ≥3.9）。路径始终加双引号。无需修改系统编码、全局 Trae 目录或注册表。
 
 目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，进入“设置 → 技能与命令”确认项目 Skill `dev-workflow` 已启用；新开会话发送：
 
