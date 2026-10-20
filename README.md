@@ -1,0 +1,61 @@
+# dev-workflow
+
+面向 Trae 的项目级开发工作流：从需求、技术方案、Demo、Task/Issue，到实施与测试验收。每位开发者安装到自己的项目，使用自己的 GitHub 仓库。
+
+## 安装
+
+需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。主力支持环境为 Trae CN；其他版本与平台的实际验证范围见 [验收记录](docs/acceptance.md)。Windows 如没有 python3，可将命令中的 python3 换为 `py -3`。
+
+```bash
+git clone https://github.com/RexYoung000/dev-workflow.git
+cd dev-workflow
+python3 scripts/workflow.py install --target /你的/业务项目根目录 --init
+```
+
+目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，进入“设置 → 技能与命令”确认项目 Skill `dev-workflow` 已启用；新开会话发送：
+
+> 用 dev-workflow 开始新项目。先读取项目现有资料，逐题确认关键需求。
+
+继续已有项目时发送“用 dev-workflow 继续当前项目”。规则入口在 `.trae/rules/dev-workflow.md`；不修改全局设置或要求安装 MCP。若需要自动导入已有 AGENTS，可在 Trae 规则设置中自行开启；Skill 本身也会明确读取它。
+
+安装包自带脚本、模板和参考文件；安装完成后可移走源码 checkout。首次初始化不会复制本仓库的历史任务、状态或 PRD。已有 AGENTS、业务文档和自定义模板保留。
+
+## 本地检查与 GitHub
+
+在业务项目根目录运行：
+
+```bash
+python3 .trae/skills/dev-workflow/scripts/workflow.py status
+python3 .trae/skills/dev-workflow/scripts/workflow.py task new --title '实现首个闭环' --module app
+```
+
+未加 --init 安装时，先使用同一入口运行 init。Task 创建后补充描述和验收标准；不要将未完成的模板检查点标为已验收。
+
+Issue 同步另需 GitHub CLI、自己的登录账号及目标仓库写权限，并在 GitHub 开启 Issues。新项目请先自行建立远端仓库，然后在业务项目中配置：
+
+```bash
+git remote add origin https://github.com/你的账号/你的项目.git
+gh auth login
+python3 .trae/skills/dev-workflow/scripts/workflow.py task sync
+```
+
+已有 origin 不需要重复添加。同步会创建/关闭真实 Issue，应在确认 Task 内容后执行。工作流目前要求 Task 有 Issue 后进入执行阶段；不使用 GitHub 时可进行本地规划，但不能走完整六阶段。
+
+## 更新与回退
+
+在源码 checkout 拉取新版后重新运行同一 install 命令。只替换 `.trae/skills/dev-workflow/`，不重置业务文档、Task 或阶段。内容相同则跳过；有变更时打印旧包在 `.trae/.dev-workflow-backups/` 下的备份位置。需要回退时，将该备份中的 dev-workflow 目录恢复到 `.trae/skills/dev-workflow/`，然后新开 Trae 会话。
+
+请勿把整个源码仓库复制成业务项目模板：其中 tasks、docs 和 .workflow 属于工作流自身。也不要直接改 origin 后继续使用旧 Task 的 Issue 编号。仓库缓存冲突时 CLI 会停止同步，先核对业务项目的仓库与映射。
+
+## 规则与限制
+
+- 本地 Markdown 是事实源；GitHub Issue 仅单向创建/关闭，不持续刷新正文、不双向回写。
+- CLI 检查任务结构、依赖和阶段条件；不能替代用户确认、实际运行、推送核对或体验验收。
+- 并行预览不是自动调度器。仅在当前 Trae 内置 Agent 支持相关子智能体时采用并行，否则串行；不同模块仍需检查共享文件。
+- 面向各自独立使用的开发者，不支持多人同时写同一个工作目录；不自动发布或部署。
+
+开发者运行 `python3 -m unittest discover -s tests -v` 进行隔离测试。产品和技术契约见 [PRD](docs/prd.md)、[技术规范](docs/tech-spec.md)。
+
+## 许可
+
+[MIT](LICENSE)。此许可覆盖 dev-workflow，不改变安装目标业务项目的许可。

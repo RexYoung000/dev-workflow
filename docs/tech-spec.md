@@ -1,156 +1,116 @@
-# dev-workflow 技术文档与技术规范
+# dev-workflow 技术规范
 
 | 项 | 值 |
 |---|---|
-| 版本 | v1.1（迭代增量，2026-10-20） |
+| 版本 | v1.1，Trae 项目级分发 |
 | 日期 | 2026-10-20 |
-| 依据 | PRD v1.0（D1-D12）+ v1.1 增量（D13-D14） |
-| 环境实测 | Python 3.13.3 / git 2.54.0 / gh CLI 2.73.0（已登录 RexYoung000） |
+| 依据 | 当前 PRD 与用户本轮实施授权 |
 
-## 1. 技术栈决策（解决 PRD §12 全部 TBD）
+## 1. 来源与目标环境
 
-| 决策点 | 选择 | 理由 |
-|---|---|---|
-| CLI 实现语言 | **Python 3（≥3.9，仅标准库）** | 本机实测可用；JSON/文件处理原生；零第三方依赖，任何机器开箱即跑 |
-| Task 状态载体 | `tasks/*.md` + **轻量 front-matter**（`key: value` 简单子集） | 人可读、agent 可直接编辑；自写约 20 行解析器，不引入 YAML 库 |
-| 项目状态载体 | `.workflow/state.json` | 标准库 json；存阶段与配置 |
-| 外部依赖 | `gh` CLI、`git`、`python3` | 均已实测存在 |
+Python ≥3.9，仅标准库；Git 初始化需要支持 `git init -b main`（Git ≥2.28）。GitHub 操作调用本机 gh CLI，不读取或分发凭据。安装和本地命令不需要 gh 或网络；同步需要已登录 gh、GitHub origin、Issues 开启和写权限。
 
-## 2. 事实源划分（对 PRD §4 的技术性澄清）
+Trae 项目 Skill 路径以官方文档为准：`.trae/skills/<name>/SKILL.md`，支持 name/description、相邻脚本、模板与参考资源。原生规则位于 `.trae/rules/`；使用 alwaysApply 的薄入口指向包内手册。AGENTS 的自动导入是用户设置，不修改该设置，也不把该开关作为唯一启动方式。
 
-- **Task 状态唯一事实源 = Task 文件 front-matter 的 `status` 字段**。
-- `workflow status` 实时扫描 `tasks/` 汇总统计；**state.json 不存 Task 状态**，只存项目阶段与配置 → 从根上消除双源不一致。
-- PRD 中「状态文件记录全部 Task 状态」据此澄清为：「状态文件记录项目阶段与配置；Task 状态以 Task 文件为准，汇总由命令实时计算」。
+参考：[技能](https://docs.trae.cn/ide_skills)、[规则](https://docs.trae.cn/ide_rules)、[子智能体](https://docs.trae.cn/ide_subagents)。真实客户端是否识别及触发须单独验证；文件布局正确不等同于 UI 验收。
 
-## 3. 仓库结构（目录规范）
+## 2. 单一维护来源与目录
 
-```
-dev-workflow/
-├── AGENTS.md                 # agent 操作手册：流程入口、文件地图、规则引用
-├── docs/
-│   ├── prd.md                # 唯一 PRD 事实源
-│   ├── tech-spec.md          # 本文件
-│   └── templates/            # prd / tech-spec / task 三套模板
-├── tasks/                    # T-001-<slug>.md
-├── scripts/workflow.py       # 单文件 CLI（Python 标准库）
-├── .workflow/state.json      # 项目阶段 + 配置
-└── skill/dev-workflow/       # Trae 项目级 skill 源码（随仓库版本化）
-    ├── SKILL.md
-    └── references/           # phases.md / questioning.md / commands.md
+```text
+源码仓库/
+  README.md, LICENSE, AGENTS.md
+  docs/prd.md, tech-spec.md, acceptance.md  # 工作流自身资料，不分发
+  scripts/workflow.py                     # 兼容薄入口
+  skill/dev-workflow/
+    SKILL.md
+    scripts/workflow.py                   # 唯一 CLI 实现
+    references/{phases,questioning,commands}.md
+    assets/project-agents.md, trae-rule.md
+    assets/templates/{prd,tech-spec,task}-template.md
+  tests/test_workflow.py                  # 标准库 unittest，隔离测试
+  tasks/, .workflow/                      # 工作流自身运行状态，不分发
 ```
 
-## 4. 数据模型
+```text
+消费项目/
+  .trae/skills/dev-workflow/               # 完整运行包 + LICENSE
+  .trae/rules/dev-workflow.md              # 短引用；已有文件不覆盖
+  AGENTS.md                               # 仅缺失时生成
+  docs/templates/                         # 仅缺失时从包内模板生成
+  docs/prd.md, docs/tech-spec.md           # 由项目需求产生，不复制源码资料
+  tasks/                                 # 首次初始化为空
+  .workflow/state.json                    # 首次阶段 1
+```
 
-### 4.1 Task 文件 front-matter 字段
+消费项目统一命令：`python3 .trae/skills/dev-workflow/scripts/workflow.py ...`。CLI 定位项目根：优先从 cwd 向上找 `.workflow/state.json`；已安装脚本不允许误操作其安装项目之外的其他 workflow 根。init 默认 cwd，显式安装目标通过 install 的 --target 传入。
 
-| 字段 | 必填 | 说明 |
-|---|---|---|
-| `id` | 是 | `T-001` 起递增，全局唯一 |
-| `title` | 是 | 中文短句 |
-| `module` | 是 | 模块名（scripts / docs / skill / …），并发分组依据 |
-| `status` | 是 | `todo / in-progress / review / done / blocked` |
-| `deps` | 否 | 依赖的 Task id 列表 |
-| `issue` | 否 | Issue 编号，sync 后回填 |
-| `assignee` | 否 | 执行 agent 标识 |
+## 3. CLI 契约
 
-正文固定两节：`## 描述`、`## 验收标准`（checkbox 列表，全部勾选才允许置 done）。
+| 命令 | 行为 |
+|---|---|
+| install [--target PATH] [--init] | 目标默认 cwd；复制完整 Skill 包及许可；可同时初始化 |
+| init | 缺失文件才生成；不覆盖已有业务资料、规则、任务和状态 |
+| task new --title TEXT --module TEXT [--deps T-001,T-002] | 分配最大 ID +1；验证依赖及输入；从本项目 task 模板生成 |
+| task sync | 先校验 origin/缓存/登录/权限，再按 Task ID 查重、创建/回填及关闭 |
+| status | 只读：阶段、配置、有效/异常 Task、待同步、blocked、执行候选和等待原因 |
+| phase next / phase set N | 前进累积校验；回退免门槛但仍须状态文件有效；不篡改 Task |
 
-### 4.2 state.json
+错误中文输出，非零退出；文件/JSON/命令异常不泄露凭据。status 不写状态或任务。模板为轻量 front-matter 子集，不支持完整 YAML；输入限单行文本、deps 为逗号分隔 ID。
+
+### 3.1 安装与升级
+
+- 安装资源来自当前包自身，不依赖 cwd 或硬编码路径；源码 checkout 自身目标明确跳过，避免重复维护安装副本。
+- 源码根 LICENSE 在打包时带入；已安装包可作为后续安装源。排除 pycache 等运行缓存。
+- 覆盖前暂存完整新包，旧包移到 `.trae/.dev-workflow-backups/<唯一时间目录>/dev-workflow/`，完成后打印新包文件清单与备份路径。失败尽可能恢复旧包。
+- 同内容重复安装不替换、不制造备份。安装器托管路径不跟随符号链接，不通过目标目录外的链接覆盖其他项目。
+- 已有 AGENTS、同名规则、自定义模板逐字保留；已存在状态通过验证后保留。源 Skill 缺失/资源不齐、跨仓库状态或非法目标在写入前报错。
+- `--init` 从目标自己的 origin 识别 repo；无 origin 时 repo 为空；不复制源 repo、phase、Task 或 docs 正文。
+- 只做项目级安装，不修改用户全局配置，不创建仓库远端、不登录账号、不自动 sync。
+
+### 3.2 项目状态与仓库隔离
 
 ```json
 {
   "phase": 1,
-  "repo": "RexYoung000/dev-workflow",
-  "config": { "max_parallel": 3 },
-  "updated_at": "2026-10-17T00:00:00+08:00"
+  "repo": "",
+  "config": {"max_parallel": 3},
+  "updated_at": "本机时区 ISO 时间"
 }
 ```
 
-### 4.3 Issue 映射规则
+phase 必须为 1..6 整数，max_parallel 为正整数，repo 为空或 owner/name。origin 存在且与缓存不同：明确拒绝 sync 和初始化，不自动把旧 issue 编号迁到新仓库。status 只读显示冲突；无 origin 可做本地规划，sync 必须拒绝。缺失缓存但已确定 origin 时，sync 可补写该缓存。Issue 同步前通过 `gh auth status` 与 `gh repo view --json nameWithOwner,hasIssuesEnabled,viewerPermission` 只读检查；无写权限或 Issues 未启用时拒绝写入。
 
-- 标题：`[T-001] 中文标题`（Task id 二次校验依据）
-- 标签：`task` + `module:<模块>`
-- 正文：Task 全字段 + 验收标准，注明「本地 tasks/ 文件为事实源」
-- 关闭：Task `status=done` → 同步时关闭对应 Issue
+### 3.3 Task 与依赖校验
 
-## 5. CLI 命令规格（scripts/workflow.py）
+必填 id/title/module/status；id 为 T-数字，status 限定五种，issue 为空或正整数；禁止重复 ID。deps 必须是有效已存在的 ID，不能自依赖或形成环；依赖异常的 Task 也不能作为有效执行候选。保留合法 front-matter 的额外字段和正文。done 必须在验收标准节包含至少一条 checkbox 且全部勾选；正文别处的 checkbox 不作为验收依据。
 
-| 命令 | 行为 | 幂等策略 |
-|---|---|---|
-| `workflow init` | 建目录骨架 + 生成约定文件 + `git init` + 写 state.json | 已存在的文件跳过不覆盖 |
-| `workflow task new --title --module [--deps]` | 按模板生成下一个 T-xxx 文件 | id 取现有最大值 +1 |
-| `workflow task sync` | 扫描 tasks/：无 issue 的创建 Issue 并回填编号；done 的关闭 Issue；输出同步汇总 | 以 front-matter `issue` 字段去重 + Issue 标题 `[T-xxx]` 二次校验 |
-| `workflow status` | 输出：当前阶段、各状态 Task 计数、未同步 Task、blocked 项、并行分组预览 | 只读 |
-| `workflow phase next` / `phase set N` | 推进项目阶段，执行门槛校验（§5.1） | 校验失败拒绝推进并列出缺口 |
-| `workflow install [--init] [--target <目录>]` | 复制 Skill 到目标项目 Trae 技能目录（§5.2） | 目标已存在则覆盖并提示（分发升级语义） |
+异常 Task：status 必须报告；phase 前进一律阻止；sync 跳过并最终以非零码提示，不关闭该 Task 的 Issue。task new 遇现存异常时先要求修正，防止重复编号或错误依赖。
 
-### 5.1 阶段门槛校验规则（V4 依据）
+### 3.4 阶段机器门槛
 
-| 目标阶段 | 门槛 |
+| 目标 | 累积条件 |
 |---|---|
-| ≥2 | `docs/prd.md` 存在 |
-| ≥3 | `docs/tech-spec.md` 存在 |
-| ≥4 | `tasks/` 下至少 1 个 Task 且 `docs/prd.md`、`docs/tech-spec.md` 齐备 |
-| ≥5 | 全部 Task `issue` 字段已回填 |
-| ≥6 | 全部 Task `status=done` |
-| 阶段 1 | 允许从任意阶段回退（迭代回流），无需校验 |
+| 任意前进 | 状态、全部 Task 和依赖结构合法 |
+| ≥2 | docs/prd.md 存在且非空 |
+| ≥3 | docs/tech-spec.md 存在且非空 |
+| ≥4 | 至少一个有效 Task |
+| ≥5 | 全部 Task 有合法 Issue 编号 |
+| ≥6 | 全部 Task done 且验收 checkbox 全勾选 |
 
-错误处理：
+不以“排除异常后剩下的任务全完成”判通过。用户确认、Demo 运行与 git push 为 Agent 的独立验收责任，CLI 不冒称已检查。
 
-- `gh` 未登录 / 无网络：非零退出码 + 中文报错，不静默失败。
-- Task 必填字段缺失：列出缺失字段、跳过该 Task、继续处理其余。
-- sync 中断：可安全重跑（去重策略保证不产生重复 Issue）。
+### 3.5 调度预览
 
-### 5.2 install 命令规格（v1.1 新增，FR-11 / D14）
+先判断 deps 全为 done，再将 todo/in-progress 按模块分组；每模块最多选一个，优先既有 in-progress；有同模块并行冲突时明确报告。全局最多 max_parallel，其余列为排队。未完成依赖、blocked/review 与异常 Task 不标为可执行。仅为候选建议，不自动启动子智能体或提供文件锁；Agent 核对跨模块共享文件，运行时能力不可用则串行。
 
-- 语义：从 dev-workflow 仓库（以脚本所在目录定位仓库根）安装 Skill 到目标项目。
-- 参数：`--target <目录>` 默认当前工作目录；`--init` 同时对目标目录执行 init（幂等建骨架）。
-- 目标路径：`<target>/.trae/skills/dev-workflow/`（v1.0 实测该位置生效；阶段 3 继续实测确认 Trae CN 技能加载机制，若发现更规范的全局路径则在 §8 更新安装方法）。
-- 覆盖策略：目标已存在则整体覆盖并打印提示——Skill 源码随仓库版本化，覆盖即升级；与 init 的「已存在跳过」语义区分（init 产物是项目事实源，install 产物是程序）。
-- 自检与边界：
-  - 目标即本仓库时提示跳过，不复制。
-  - 源 `skill/dev-workflow/` 缺失：非零退出码 + 中文报错。
-  - 安装成功后打印文件清单，并提示「新开会话点名触发验证」。
+## 4. 验证与验收
 
-## 6. commit 与分支规范
-
-- 分支策略：单人单机，**main 直接提交**（简单优先，练习项目不设分支矩阵）。
-- 格式：`<type>(<module>): 中文描述 #<issue>`，type ∈ feat / fix / docs / refactor / test / chore。
-- 时机：Task 进入 review 或 done 即 commit + push。
-- 禁止：跳过 hooks、force push；push 失败重试或报告。
-
-## 7. 并发模型（落实 FR-8 / D11）
-
-- **并行 = 多个子代理同时执行各自 Task 的工作；git commit 由主 agent 串行执行**（Task 完成一个提交一个，规避 git index 竞争）。
-- 文件隔离：并发 Task 的文件集不得相交，由 `module` 维度约束。
-- 并发上限读 `state.json → config.max_parallel`，默认 3，用户可随时改。
-
-## 8. Skill 规格（FR-10 / D9）
-
-- `skill/dev-workflow/SKILL.md`：name + description（内嵌触发词：dev-workflow、开始新项目、继续项目、写 PRD、拆 Task、同步 Issue）。
-- `references/` 三份：
-  - `phases.md`：六阶段定义 + 严格门槛检查清单
-  - `questioning.md`：逐题 + 选项卡提问规范（对应 FR-1）
-  - `commands.md`：CLI 四命令用法与错误处理
-- 安装：源码随 dev-workflow 仓库版本化；使用时复制到目标项目的 Trae 项目技能目录（确切路径在 Demo 阶段实测确认）。
-
-## 9. 技术验证清单（阶段 3 Demo 执行）
-
-| # | 验证点 | 通过标准 |
-|---|---|---|
-| V1 | front-matter 轻量解析器 | Task 字段读写无损、缺失字段正确报告 |
-| V2 | gh 创建 Issue + 回填 | 创建成功、编号回填、重跑 sync 零重复 |
-| V3 | status 汇总 | 各状态计数与实际文件一致 |
-| V4 | 阶段门槛检查 | 非法跳阶段被拦截并提示 |
-| Demo 闭环 | 示例项目全流程 | init → 2 个示例 Task → sync → status 全链路跑通 |
-| V5 | Trae CN 技能加载路径 | 干净目录安装后新会话可点名触发；加载机制有结论 |
-| V6 | install 端到端 | /tmp 模拟 clone → install → 安装文件与源一致 |
-| V7 | install --init 组合 | 空目录一步到位：Skill 装好 + 项目骨架齐备 |
-
-## 10. 已确认项（2026-10-17 用户确认）
-
-三项均按本文件方案确认执行：
-
-1. **事实源划分**（§2）：Task 状态以 front-matter 为准、state.json 只存阶段与配置。
-2. **分支策略**（§6）：main 直接提交。
-3. **CLI 形态**（§5）：单文件 `workflow.py`（含 `phase` 子命令）。
+- Python 标准库 unittest，CLI 在 TemporaryDirectory 中运行；需要 gh 时用记录调用的假后端，不对真实仓库制造测试 Issue。
+- 端到端：source clone → install --init → 删除/移开分发源 → 新建 Task/status/phase；安装包可独立运行。
+- 保留：已有 AGENTS、业务 PRD、tech-spec、规则、自定义模板、Task、phase/config 不被覆盖。
+- 升级：同版本幂等、旧包备份可恢复、缺资源/链接路径/错误目标非零退出。
+- 隔离：不同项目使用不同 origin；缓存冲突、无 origin、gh 未登录、权限不足、Issues 关闭在写入前停止。
+- 任务：缺字段、重复 ID、缺依赖、环、非法 issue、done 未验收均不能越过门槛；有依赖任务不得误提示并行。
+- 同步：创建/回填/关闭的完整生命周期与中断重跑幂等；异常 Task 不关闭 Issue。
+- Skill：front-matter、相对资源和引用完整，默认入口与总资源大小分别统计。真实 Trae 新会话点名触发、规则读取和体验单独记录，未运行就标待验证。
+- 本轮允许普通 commit/push；不创建 release、不合并 PR、不部署。
