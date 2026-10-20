@@ -2,9 +2,9 @@
 
 | 项 | 值 |
 |---|---|
-| 版本 | v1.0 已确认（2026-10-17） |
-| 日期 | 2026-10-17 |
-| 依据 | PRD v1.0 定稿（D1-D12） |
+| 版本 | v1.1（迭代增量，2026-10-20） |
+| 日期 | 2026-10-20 |
+| 依据 | PRD v1.0（D1-D12）+ v1.1 增量（D13-D14） |
 | 环境实测 | Python 3.13.3 / git 2.54.0 / gh CLI 2.73.0（已登录 RexYoung000） |
 
 ## 1. 技术栈决策（解决 PRD §12 全部 TBD）
@@ -82,6 +82,7 @@ dev-workflow/
 | `workflow task sync` | 扫描 tasks/：无 issue 的创建 Issue 并回填编号；done 的关闭 Issue；输出同步汇总 | 以 front-matter `issue` 字段去重 + Issue 标题 `[T-xxx]` 二次校验 |
 | `workflow status` | 输出：当前阶段、各状态 Task 计数、未同步 Task、blocked 项、并行分组预览 | 只读 |
 | `workflow phase next` / `phase set N` | 推进项目阶段，执行门槛校验（§5.1） | 校验失败拒绝推进并列出缺口 |
+| `workflow install [--init] [--target <目录>]` | 复制 Skill 到目标项目 Trae 技能目录（§5.2） | 目标已存在则覆盖并提示（分发升级语义） |
 
 ### 5.1 阶段门槛校验规则（V4 依据）
 
@@ -99,6 +100,17 @@ dev-workflow/
 - `gh` 未登录 / 无网络：非零退出码 + 中文报错，不静默失败。
 - Task 必填字段缺失：列出缺失字段、跳过该 Task、继续处理其余。
 - sync 中断：可安全重跑（去重策略保证不产生重复 Issue）。
+
+### 5.2 install 命令规格（v1.1 新增，FR-11 / D14）
+
+- 语义：从 dev-workflow 仓库（以脚本所在目录定位仓库根）安装 Skill 到目标项目。
+- 参数：`--target <目录>` 默认当前工作目录；`--init` 同时对目标目录执行 init（幂等建骨架）。
+- 目标路径：`<target>/.trae/skills/dev-workflow/`（v1.0 实测该位置生效；阶段 3 继续实测确认 Trae CN 技能加载机制，若发现更规范的全局路径则在 §8 更新安装方法）。
+- 覆盖策略：目标已存在则整体覆盖并打印提示——Skill 源码随仓库版本化，覆盖即升级；与 init 的「已存在跳过」语义区分（init 产物是项目事实源，install 产物是程序）。
+- 自检与边界：
+  - 目标即本仓库时提示跳过，不复制。
+  - 源 `skill/dev-workflow/` 缺失：非零退出码 + 中文报错。
+  - 安装成功后打印文件清单，并提示「新开会话点名触发验证」。
 
 ## 6. commit 与分支规范
 
@@ -131,6 +143,9 @@ dev-workflow/
 | V3 | status 汇总 | 各状态计数与实际文件一致 |
 | V4 | 阶段门槛检查 | 非法跳阶段被拦截并提示 |
 | Demo 闭环 | 示例项目全流程 | init → 2 个示例 Task → sync → status 全链路跑通 |
+| V5 | Trae CN 技能加载路径 | 干净目录安装后新会话可点名触发；加载机制有结论 |
+| V6 | install 端到端 | /tmp 模拟 clone → install → 安装文件与源一致 |
+| V7 | install --init 组合 | 空目录一步到位：Skill 装好 + 项目骨架齐备 |
 
 ## 10. 已确认项（2026-10-17 用户确认）
 
