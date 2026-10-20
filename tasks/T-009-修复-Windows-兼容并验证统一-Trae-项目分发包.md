@@ -4,7 +4,7 @@ title: 修复 Windows 兼容并验证统一 Trae 项目分发包
 module: workflow
 status: in-progress
 deps: 
-issue: 
+issue: 9
 assignee: 
 ---
 

@@ -5,6 +5,7 @@ import argparse
 from collections import deque
 from datetime import datetime
 import json
+import locale
 import os
 from pathlib import Path
 import re
@@ -12,9 +13,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from urllib.parse import urlsplit
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 PACKAGE = Path(__file__).resolve().parents[1]
 STATUSES = ("todo", "in-progress", "review", "done", "blocked")
 FIELD_ORDER = ("id", "title", "module", "status", "deps", "issue", "assignee")
@@ -31,21 +33,37 @@ def fail(message):
     raise WorkflowError(message)
 
 
-def run(command, cwd=None, check=True, env=None):
+def diagnostic(data):
     try:
-        result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=45)
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode(locale.getpreferredencoding(False), errors="backslashreplace")
+
+
+def run(command, cwd=None, check=True, env=None, input_text=None):
+    executable = shutil.which(command[0])
+    if executable is None:
+        fail(f"未找到命令 {command[0]}，请先安装")
+    try:
+        result = subprocess.run([executable, *command[1:]], cwd=cwd, env=env, capture_output=True,
+                                input=None if input_text is None else input_text.encode("utf-8"), timeout=45)
     except FileNotFoundError:
         fail(f"未找到命令 {command[0]}，请先安装")
     except subprocess.TimeoutExpired:
         fail(f"命令 {command[0]} 超时，请检查网络后重试")
+    result.stderr = diagnostic(result.stderr)
+    try:
+        result.stdout = result.stdout.decode("utf-8") if not result.returncode else diagnostic(result.stdout)
+    except UnicodeDecodeError:
+        fail(f"命令 {command[0]} 返回非 UTF-8 输出，已停止解析；请核对工具版本与输出编码。")
     if check and result.returncode:
         fail(f"命令失败：{' '.join(command[:3])}\n{(result.stderr or result.stdout).strip()}")
     return result
 
 
-def gh(args):
+def gh(args, input_text=None):
     # 本版只支持 github.com origin，不能让本机 GH_HOST 将写入转向其他主机。
-    result = run(["gh", *args], check=False, env=dict(os.environ, GH_HOST="github.com"))
+    result = run(["gh", *args], check=False, env=dict(os.environ, GH_HOST="github.com"), input_text=input_text)
     if result.returncode:
         fail(f"gh {args[0]} 失败：{(result.stderr or result.stdout).strip()}\n请检查 gh auth status、仓库权限与网络后重试。")
     return result.stdout
@@ -59,13 +77,23 @@ def inside(path, root):
         return False
 
 
+def linked_path(path):
+    if path.is_symlink():
+        return True
+    try:
+        # Python 3.9 没有 Path.is_junction；MOUNT_POINT tag 也识别目录联接。
+        return getattr(path.lstat(), "st_reparse_tag", 0) == 0xA0000003
+    except FileNotFoundError:
+        return False
+
+
 def plain_path(root, path):
     """不跟随项目内托管路径的链接，避免升级/初始化写到其他目录。"""
     current = root
     for part in path.relative_to(root).parts:
         current = current / part
-        if current.is_symlink():
-            fail(f"托管路径不能是符号链接：{current}")
+        if linked_path(current):
+            fail(f"托管路径不能是符号链接或目录联接：{current}")
 
 
 def installed_root():
@@ -96,7 +124,7 @@ def find_root():
 def load_state(root):
     plain_path(root, root / ".workflow/state.json")
     try:
-        state = json.loads((root / ".workflow/state.json").read_text(encoding="utf-8"))
+        state = json.loads((root / ".workflow/state.json").read_text(encoding="utf-8-sig"))
     except (ValueError, OSError) as error:
         fail(f"无法读取 .workflow/state.json：{error}")
     if not isinstance(state, dict):
@@ -112,12 +140,26 @@ def load_state(root):
     return state
 
 
+def retry_permission(operation):
+    """只重试短暂文件占用，不重试其他错误或远端写入。"""
+    for attempt in range(4):
+        try:
+            return operation()
+        except PermissionError:
+            if attempt == 3:
+                raise
+            time.sleep(0.1 * (attempt + 1))
+
+
 def atomic_text(path, text):
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
-        os.replace(temporary, path)
+        try:
+            retry_permission(lambda: os.replace(temporary, path))
+        except PermissionError:
+            fail(f"文件被占用或没有写权限，原文件未替换：{path}。请解除占用/核对权限后重试。")
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -171,20 +213,28 @@ def payload():
     for path in sorted(PACKAGE.rglob("*")):
         if "__pycache__" in path.parts or path.suffix == ".pyc" or path.name == ".DS_Store":
             continue
-        if path.is_symlink():
-            fail(f"源 Skill 不支持符号链接：{path}")
+        if linked_path(path):
+            fail(f"源 Skill 不支持符号链接或目录联接：{path}")
         if path.is_file():
             files[path.relative_to(PACKAGE).as_posix()] = path.read_bytes()
     license_path = PACKAGE / "LICENSE"
     if source_root() is not None:
         license_path = source_root() / "LICENSE"
-    if not license_path.is_file() or license_path.is_symlink():
+    if not license_path.is_file() or linked_path(license_path):
         fail("分发源缺少 LICENSE，请重新获取完整分发包。")
     files["LICENSE"] = license_path.read_bytes()
     return files
 
 
-def check_target(root):
+def check_windows_paths(paths):
+    if os.name == "nt" and any(len(str(path).encode("utf-16-le")) // 2 >= 260 for path in paths):
+        fail("Windows 项目路径过长（包含安装暂存/备份或任务文件）。请将项目移至较短路径，例如 C:\\Projects\\app 后重试；无需修改系统长路径策略。")
+
+
+def check_target(root, resources=None):
+    # 预留实际暂存/备份的随机目录名和最长包内资源路径。
+    prefix = root / ".trae/.dev-workflow-backups/20000101-000000-abcdefgh/dev-workflow"
+    check_windows_paths([prefix / name for name in (resources or ["assets/templates/tech-spec-template.md"])])
     if root.exists() and not root.is_dir():
         fail(f"安装目标不是目录：{root}")
     for rel in (".trae/skills/dev-workflow", ".trae/.dev-workflow-backups", ".trae/rules/dev-workflow.md", ".workflow/state.json", "AGENTS.md", "tasks", "docs/templates"):
@@ -223,10 +273,10 @@ def init_project(root):
     root.mkdir(parents=True, exist_ok=True)
     for relative in ("docs/templates", "tasks", ".workflow"):
         (root / relative).mkdir(parents=True, exist_ok=True)
-    seed(root, "AGENTS.md", (PACKAGE / "assets/project-agents.md").read_text(encoding="utf-8"))
+    seed(root, "AGENTS.md", (PACKAGE / "assets/project-agents.md").read_text(encoding="utf-8-sig"))
     for name in ("prd", "tech-spec", "task"):
         relative = f"docs/templates/{name}-template.md"
-        seed(root, relative, (PACKAGE / "assets/templates" / f"{name}-template.md").read_text(encoding="utf-8"))
+        seed(root, relative, (PACKAGE / "assets/templates" / f"{name}-template.md").read_text(encoding="utf-8-sig"))
     if not (root / ".git").exists():
         run(["git", "init", "-b", "main"], cwd=root)
         print("[git] 已初始化 main；未配置远端、未推送")
@@ -241,8 +291,8 @@ def existing_payload(destination):
     files = {}
     if destination.exists():
         for path in destination.rglob("*"):
-            if path.is_symlink():
-                fail(f"已安装包含符号链接，请先核对：{path}")
+            if linked_path(path):
+                fail(f"已安装包含符号链接或目录联接，请先核对：{path}")
             if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
                 files[path.relative_to(destination).as_posix()] = path.read_bytes()
     return files
@@ -253,7 +303,7 @@ def install_project(root, initialize=False):
         print("[跳过] 目标是 trae-Rex-workflow 源码仓库；请安装到自己的业务项目。")
         return
     files = payload()
-    check_target(root)
+    check_target(root, files)
     destination = root / ".trae/skills/dev-workflow"
     old = existing_payload(destination)
     root.mkdir(parents=True, exist_ok=True)
@@ -273,19 +323,28 @@ def install_project(root, initialize=False):
                 backup_parent = root / ".trae/.dev-workflow-backups"
                 backup_parent.mkdir(parents=True, exist_ok=True)
                 backup = Path(tempfile.mkdtemp(prefix=datetime.now().strftime("%Y%m%d-%H%M%S-"), dir=backup_parent)) / "dev-workflow"
-                destination.rename(backup)
-            try:
-                staged.rename(destination)
-            except OSError:
-                if backup is not None:
-                    backup.rename(destination)
-                raise
-            if backup is not None:
+                try:
+                    retry_permission(lambda: destination.rename(backup))
+                except PermissionError:
+                    fail(f"安装包被占用或没有写权限，旧包保持在 {destination}。请解除占用/核对权限后重试。")
                 print(f"[备份] {backup}")
+            try:
+                retry_permission(lambda: staged.rename(destination))
+            except OSError as error:
+                if backup is not None:
+                    try:
+                        retry_permission(lambda: backup.rename(destination))
+                    except OSError as recovery_error:
+                        fail(f"更新失败且自动恢复未完成：{error}；{recovery_error}。旧包完整保留在 {backup}；请解除占用后将它恢复至 {destination}。")
+                    fail(f"更新失败，旧包已恢复至 {destination}：{error}。请解除占用/核对权限后重试。")
+                raise
             print(f"[安装] trae-Rex-workflow {VERSION} → {destination}")
         finally:
-            shutil.rmtree(temporary)
-    seed(root, ".trae/rules/dev-workflow.md", (PACKAGE / "assets/trae-rule.md").read_text(encoding="utf-8"))
+            try:
+                retry_permission(lambda: shutil.rmtree(temporary))
+            except OSError:
+                print(f"[提示] 安装暂存目录未能清理，请解除占用后删除：{temporary}", file=sys.stderr)
+    seed(root, ".trae/rules/dev-workflow.md", (PACKAGE / "assets/trae-rule.md").read_text(encoding="utf-8-sig"))
     if initialize:
         init_project(root)
     print("安装文件：")
@@ -305,7 +364,7 @@ def cmd_init(_args):
 
 
 def parse_task(path):
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8-sig")
     match = re.match(r"\A---\n(.*?)\n---\n(.*)\Z", text, re.S)
     if not match:
         return {}, text
@@ -437,9 +496,11 @@ def cmd_task_new(args):
     if not template.is_file():
         template = PACKAGE / "assets/templates/task-template.md"
     fields = dict(zip(FIELD_ORDER, (next_id, args.title.strip(), args.module.strip(), "todo", ",".join(deps), "", "")))
-    slug = re.sub(r'[\\/:*?"<>|#%\s]+', "-", args.title).strip("-.") or "task"
+    slug = re.sub(r'[\\/:*?"<>|#%\s\x00-\x1f]+', "-", args.title).strip("-.") or "task"
+    slug = slug.encode("utf-8")[:72].decode("utf-8", errors="ignore").rstrip("-.") or "task"
     (root / "tasks").mkdir(exist_ok=True)
     path = root / "tasks" / f"{next_id}-{slug}.md"
+    check_windows_paths([path, path.with_name(f".{path.name}.abcdefgh")])
     task = {"path": path, "fields": fields, "body": parse_task(template)[1]}
     if path.exists():
         fail(f"任务文件已存在：{path.name}")
@@ -497,7 +558,7 @@ def cmd_task_sync(_args):
             if number is None:
                 for name, color in (("task", "0E8A16"), (f"module:{fields['module']}", "1D76DB")):
                     gh(["label", "create", name, "--repo", repo, "--color", color, "--force"])
-                url = gh(["issue", "create", "--repo", repo, "--title", issue_title(fields), "--body", build_issue_body(task), "--label", "task", "--label", f"module:{fields['module']}"])
+                url = gh(["issue", "create", "--repo", repo, "--title", issue_title(fields), "--body-file", "-", "--label", "task", "--label", f"module:{fields['module']}"], input_text=build_issue_body(task))
                 match = re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/issues/([1-9]\d*)/?", url.strip())
                 if not match or match[1].casefold() != repo.casefold():
                     fail("创建 Issue 返回值异常，未回填；请重跑按 Task ID 查重恢复。")
@@ -585,7 +646,7 @@ def gate_gaps(root, target):
     gaps = [f"{task['path'].name}: {'；'.join(task['errors'])}" for task in invalid]
     for minimum, name in ((2, "prd"), (3, "tech-spec")):
         path = root / f"docs/{name}.md"
-        if target >= minimum and (not path.is_file() or not path.read_text(encoding="utf-8").strip()):
+        if target >= minimum and (not path.is_file() or not path.read_text(encoding="utf-8-sig").strip()):
             gaps.append(f"缺少或空白 docs/{name}.md")
     if target >= 4 and not valid:
         gaps.append("tasks/ 下没有有效 Task")
@@ -616,6 +677,9 @@ def cmd_phase(args):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(prog="workflow", description="Trae 项目级 trae-Rex-workflow CLI")
     parser.add_argument("--version", action="version", version=VERSION)
     commands = parser.add_subparsers(dest="cmd", required=True)

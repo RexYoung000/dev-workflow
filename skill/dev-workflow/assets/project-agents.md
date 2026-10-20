@@ -6,4 +6,5 @@
 - 产品与技术事实以本项目 `docs/prd.md`、`docs/tech-spec.md` 及实际实现为准。
 - 任务以本项目 `tasks/*.md` 为准，阶段与配置见 `.workflow/state.json`。
 - CLI 入口：`python3 .trae/skills/dev-workflow/scripts/workflow.py`；先运行 `status` 恢复上下文。
+- Windows 使用 `py -3`（或版本 ≥3.9 的 `python`）替代 python3；国内版与国际版共用项目安装路径，业务文件使用 UTF-8。
 - 新需求先对齐再实施，代理验证与用户最终体验验收分别记录；发布和生产部署另行获得授权。

@@ -118,6 +118,7 @@ phase 必须为 1..6 整数，max_parallel 为正整数，repo 为空或 owner/n
 - Task、状态、模板与门槛文档读取支持 UTF-8 BOM、LF/CRLF；所有写入无 BOM UTF-8/LF。Task 文件名的标题片段限定 UTF-8 字节数，完整标题仍保存于 front-matter。
 - 原子文件替换与包目录移动只对 PermissionError 有限重试。更新交换失败尝试恢复旧包；恢复也失败时保留备份并明确输出旧包位置与目标路径，清理失败不能掩盖原始错误。
 - Windows 安装/初始化预检包含暂存与备份的最长托管路径，超过传统路径限制时在写入前拒绝并建议短项目路径；不修改注册表或 Git 全局配置。超长路径支持不作承诺。
+- 托管路径同时拒绝 Windows junction（目录联接），避免其绕过符号链接保护写到其他项目；CI 通过原生 junction 验证。
 - GitHub Actions 在 Windows/macOS/Linux、Python 3.9/3.13 执行测试，仅授予 contents:read。测试替身不依赖 Unix shebang/chmod/PATH 覆盖或真实 gh，不访问真实业务仓库。
 
 依据：[Python subprocess](https://docs.python.org/3.13/library/subprocess.html)、[Windows 命令行上限](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)、[gh Issue 正文输入](https://cli.github.com/manual/gh_issue_create)。
