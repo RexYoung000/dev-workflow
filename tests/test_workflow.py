@@ -455,9 +455,14 @@ class WorkflowTests(unittest.TestCase):
 
     def test_relative_executable_is_resolved_before_changing_working_directory(self):
         module = load_module()
-        relative = os.path.relpath(sys.executable)
-        with patch.object(module.shutil, "which", return_value=relative):
-            result = module.run(["python-for-test", "-c", "print('resolved')"], cwd=self.project)
+        previous = Path.cwd()
+        try:
+            # Windows runner 的解释器和项目可处于不同盘符，不对它们求 relpath。
+            os.chdir(Path(sys.executable).parent)
+            with patch.object(module.shutil, "which", return_value=Path(sys.executable).name):
+                result = module.run(["python-for-test", "-c", "print('resolved')"], cwd=self.project)
+        finally:
+            os.chdir(previous)
         self.assertEqual(result.stdout.strip(), "resolved")
 
     def test_bom_crlf_state_tasks_and_documents_are_read_without_rewriting(self):
