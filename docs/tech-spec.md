@@ -111,7 +111,7 @@ phase 必须为 1..6 整数，max_parallel 为正整数，repo 为空或 owner/n
 
 ## 4. 验证与验收
 
-### Windows 兼容契约（v1.1.2，实施前）
+### Windows 兼容契约（v1.1.2）
 
 - CLI 标准输出/错误在本进程明确为 UTF-8，不改全局环境；Git/gh 的正常结构化输出严格按 UTF-8 解码。失败诊断可按本机编码回退，不能用字符替换让损坏 JSON 继续同步。
 - 子进程使用参数列表、绝对可执行文件路径且不用 shell。Issue 创建使用 `gh issue create --body-file -`，正文以 UTF-8 字节送入 stdin，保留换行且不受 Windows 命令行正文长度影响。

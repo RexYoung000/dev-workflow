@@ -2,7 +2,7 @@
 id: T-009
 title: 修复 Windows 兼容并验证统一 Trae 项目分发包
 module: workflow
-status: in-progress
+status: done
 deps: 
 issue: 9
 assignee: 
@@ -14,8 +14,8 @@ assignee:
 
 ## 验收标准
 
-- [ ] 文档先提交，统一地区版本与 Windows 处理契约
-- [ ] 编码、BOM/CRLF、长正文与路径/文件占用修复通过回归
-- [ ] Windows/macOS/Linux 的真实 CI 测试通过，假 gh 不访问网络
-- [ ] 安装包及资源验证通过，真实客户端覆盖与限制准确记录
-- [ ] 普通提交推送完成，完整体验留待用户验收
+- [x] 文档先提交，统一地区版本与 Windows 处理契约
+- [x] 编码、BOM/CRLF、长正文与路径/文件占用修复通过回归
+- [x] Windows/macOS/Linux 的真实 CI 测试通过，假 gh 不访问网络
+- [x] 安装包及资源验证通过，真实客户端覆盖与限制准确记录
+- [x] 普通提交推送完成，完整体验留待用户验收

@@ -6,13 +6,15 @@
 
 ## 安装
 
-需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。国内版与国际版共用同一安装包，不绑定地区账号和模型。v1.1.2 正在修复 Windows 编码、BOM 与长正文兼容性；平台测试和客户端实际验证范围分别见 [验收记录](docs/acceptance.md)，不将 CLI 测试当作客户端验收。
+需要 Python ≥3.9、Git ≥2.28，以及支持项目 Skill 的 Trae 桌面版。国内版与国际版共用同一安装包，不绑定地区账号和模型。v1.1.2 已修复 Windows 编码、BOM、长正文和更新恢复；平台测试和客户端实际验证范围分别见 [验收记录](docs/acceptance.md)，不将 CLI 测试当作客户端验收。
 
 ```bash
 git clone https://github.com/RexYoung000/trae-Rex-workflow.git
 cd trae-Rex-workflow
 python3 scripts/workflow.py install --target "/你的/业务项目根目录" --init
 ```
+
+已通过 Windows/macOS/Linux 上的 CLI 自动测试和 macOS Trae CN 3.4.4 新会话烟测。Windows 桌面 Trae 与国际版客户端尚未实测；安装后应在新会话复核技能加载和项目状态。
 
 Windows PowerShell（建议较短的项目路径，不需要 Git Bash）：
 
@@ -24,7 +26,7 @@ py -3 scripts/workflow.py install --target "C:\Projects\我的项目" --init
 
 后续命令在 Windows 将 `python3` 换为 `py -3`；若未安装 Python Launcher，使用已安装的 `python`（先确认版本 ≥3.9）。路径始终加双引号。无需修改系统编码、全局 Trae 目录或注册表。
 
-目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，进入“设置 → 技能与命令”确认项目 Skill `dev-workflow` 已启用；新开会话发送：
+目标可以是空目录或已有项目。安装后在 **Trae 中打开目标业务项目**，在项目 Skills/技能设置中确认 `dev-workflow` 已启用（CN 3.4.4 入口为“设置 → 技能与命令”，其他版本菜单可能不同）；新开会话发送：
 
 > 用 trae-Rex-workflow 开始新项目。先读取项目现有资料，逐题确认关键需求。
 
@@ -54,6 +56,8 @@ python3 .trae/skills/dev-workflow/scripts/workflow.py task sync
 已有 origin 不需要重复添加。同步会创建/关闭真实 Issue，应在确认 Task 内容后执行。工作流目前要求 Task 有 Issue 后进入执行阶段；不使用 GitHub 时可进行本地规划，但不能走完整六阶段。
 
 ## 更新与回退
+
+Windows 更新/回退遇文件占用时，先解除对应文件占用后重试。若自动恢复失败，CLI 会打印保留的旧包与恢复目标；不要删除唯一备份。超长路径会提前拒绝，建议改用较短项目路径；详细处理见包内 [命令说明](skill/dev-workflow/references/commands.md)。
 
 旧源码 checkout 可先更新仓库地址（**仅在本工作流的源码仓库执行，不要把业务项目的 origin 改成此地址**）：
 

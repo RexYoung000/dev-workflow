@@ -1,5 +1,45 @@
 # trae-Rex-workflow 验证与验收记录
 
+## v1.1.2 Windows 与地区版本兼容修复（2026-10-20）
+
+状态：实现已推送、六组跨平台 CI 与公开安装复核通过；用户完整体验待验收。跟踪 T-009 / Issue #9，先文档提交 `279ca6d`，实现提交 `68388d9`。
+
+### 已实现与测试边界
+
+- CLI 自行配置 UTF-8 输出；Git/gh 正常输出严格 UTF-8，错误诊断允许本机编码回退；损坏 JSON 不会被替换字符后继续同步。测试强制 cp1252 输出环境与 cp936 诊断场景。
+- 状态、Task、模板及门槛文档接受 UTF-8 BOM/CRLF；status 不改文件，写回统一无 BOM UTF-8/LF。UTF-16 与任意 ANSI 业务文件不在支持范围。
+- Issue 正文改用 `--body-file -` + UTF-8 stdin；长正文（超过 32767 UTF-16 单元，含中文、emoji、引号、换行）完整传到隔离后端，命令参数保持短小。
+- Task 文件名的标题片段限定 72 个 UTF-8 字节，内容保留完整标题；Windows 超长托管路径在写入前拒绝，提示短项目路径，不改注册表或全局编码。
+- 更新/原子保存对短暂 PermissionError 最多尝试 4 次；模拟换包失败可自动恢复旧包，连恢复也失败时保留旧包备份并显示恢复路径。原生 Windows 文件共享锁和 junction 测试已在 Windows CI 执行通过。
+- 测试入口不依赖 shebang/chmod 或 PATH 覆盖，所有 gh 调用转至测试目录中的 Python 假后端；不需要真实 gh 或登录，不创建测试 Issue。
+- 国内版与国际版共用 `.trae/skills/dev-workflow/` 与 `.trae/rules/dev-workflow.md`，保持新旧名称触发和原安装路径；新增 PowerShell 文档、UTF-8 文件保存与占用恢复说明。
+
+### 真实执行结果
+
+最终 [跨平台 CI 39438525126](https://github.com/RexYoung000/trae-Rex-workflow/actions/runs/39438525126) 在提交 `be46441` 上六组全部成功：
+
+| 执行环境 | Python | 结果 |
+|---|---|---|
+| windows-latest（Windows Server 2025 x64） | 3.9 / 3.13 | 每组 46 项通过；包括真实 Win32 文件共享锁与 junction |
+| macos-15-intel / macos-latest | 分别 3.9 / 3.13 | 每组 44 项通过、2 项 Windows 专用测试跳过 |
+| ubuntu-latest | 3.9 / 3.13 | 每组 44 项通过、2 项 Windows 专用测试跳过 |
+
+Skill 结构与相对资源检查通过，运行依赖仍仅 Python 标准库。CI 的 Actions 固定到已核实的官方提交，只授予 contents:read，不保存 checkout 凭据，不执行发布部署。
+
+本地 macOS Python 3.13.3：46 项中 44 项通过、2 项 Windows 专用检查按平台跳过；另补可执行文件为显式相对路径、执行时切换项目目录的跨盘符回归。首次 Windows CI 发现两项直接调用内部函数的测试输出依赖系统编码，已于 `e311418` 用内存捕获修复，CLI 的旧编码测试保持不变；首次 macOS/Python 3.9 在 ARM 镜像安装 Intel 解释器时缺少 libintl，已于 `6e9d8af` 调整最低版本测试机架构，没有跳过产品测试。
+
+公开分发：从 GitHub 匿名重新 clone `be46441`，安装到中文/空格路径的独立项目，包内版本为 1.1.2、阶段 1、零 Task。移走源码 checkout 后，包内 CLI 能离线创建 T-001 并显示有效 1 / 异常 0，无源项目历史数据。
+
+真实客户端：macOS Trae CN 3.4.4、GLM-5.3-Flash，使用 `68388d9` 分发包升级先前独立验证项目后新建会话（后续仅补工具绝对路径处理与测试环境）。UI 展开实际显示“调用技能：dev-workflow”，子任务记录读取 1 个文件、执行 2 条命令；`--version` 为 1.1.2，`status` 为阶段 1、零 Task，并读取新版 Windows/地区版本说明。本轮只读，无 Issue/提交/推送操作。
+
+加载量：发现元数据 377 B；SKILL.md 调用入口 2554 B；完整安装包 11 文件 / 49352 B（含 CLI、参考、模板与 MIT LICENSE）。默认入口未增加；资源总量增加来自实际兼容处理和恢复文档，按需资源不算删除。
+
+### 尚未覆盖与手工验收
+
+- 当前电脑仅安装 Trae CN；国际版目录协议已按官方 [Skills](https://docs.trae.ai/ide/skills) / [Rules](https://docs.trae.ai/ide/rules) 核对，**国际版真实客户端触发仍未验证**。
+- Windows CI 验证 Python CLI、文件系统与隔离同步；**没有 Windows 桌面 Trae UI 验收**，不能等同于 Windows 版所有客户端/模型均可用。
+- 用户可按 README 在自己的项目安装，Trae 打开该根目录、启用项目 Skill `dev-workflow`，新会话发送“用 trae-Rex-workflow 继续当前项目”，核对包内版本 1.1.2、项目自己的阶段/Task/origin。国际版同样操作，界面菜单名称可能不同；最终完整六阶段体验仍待用户验收。
+
 ## v1.1.1 项目更名（2026-10-20）
 
 - 用户确认项目名及仓库名为 `trae-Rex-workflow`，修正输入时 workflow 的拼写。先文档提交 `4840b12`，再实施。
@@ -11,7 +51,7 @@
 
 ## Windows 与国际版兼容性评估（2026-10-20）
 
-本节是代码检查、官方文档核对与本机模拟结果，**不是 Windows 或国际版客户端实测**；本轮更名不包含这些兼容缺口的修复。
+以下保留修复前评估，已修复项以本页 v1.1.2 记录为准。本节是代码检查、官方文档核对与本机模拟结果，**不是 Windows 或国际版客户端实测**；本轮更名不包含这些兼容缺口的修复。
 
 | 观察 | 证据与处理建议 |
 |---|---|
